@@ -1,3 +1,15 @@
+// Expo SDK 54 resolves Metro 0.83, which uses Array.prototype.toReversed().
+// EAS's Android image currently runs Node 18, where that method is absent.
+if (!Array.prototype.toReversed) {
+  Object.defineProperty(Array.prototype, 'toReversed', {
+    value: function toReversed() {
+      return Array.from(this).reverse();
+    },
+    configurable: true,
+    writable: true,
+  });
+}
+
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 const fs = require('fs');
