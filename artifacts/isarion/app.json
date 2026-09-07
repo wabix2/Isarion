@@ -50,11 +50,11 @@
     "experiments": {
       "typedRoutes": true
     },
+    "owner": "wabileo1s-team",
     "extra": {
       "eas": {
-        "projectId": "69d5eae8-d2a1-4ba7-a305-bc7659ec11f7"
+        "projectId": "c1c92d5f-c1a6-4120-bed3-1247571b1c88"
       }
-    },
-    "owner": "wabileos-team"
+    }
   }
 }
