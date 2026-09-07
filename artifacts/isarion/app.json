@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "Isarion",
+    "slug": "lumiq-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "lumiq-ai",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0A0C12"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.lumiqai.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.lumiqai.mobile",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0A0C12"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#818CF8",
+          "defaultChannel": "streak-reminder"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "69d5eae8-d2a1-4ba7-a305-bc7659ec11f7"
+      }
+    },
+    "owner": "wabileos-team"
+  }
+}
