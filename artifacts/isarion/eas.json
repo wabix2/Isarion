@@ -1,0 +1,34 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "requireCommit": false,
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal",
+      "env": {
+        "EAS_BUILD_DISABLE_WORKSPACE_DETECTION": "1"
+      },
+      "cache": {
+        "disabled": true
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EAS_BUILD_DISABLE_WORKSPACE_DETECTION": "1"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
