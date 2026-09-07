@@ -1,0 +1,427 @@
+import * as Haptics from "expo-haptics";
+import { useAuth } from "@clerk/expo";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColors } from "@/hooks/useColors";
+import { useUser } from "@/context/UserContext";
+import QuitWarningModal from "@/components/QuitWarningModal";
+import { QUIT_WARNING_QUOTES, randomQuote } from "@/constants/motivation";
+import { postLearnerEvidence } from "@/utils/learnerEvidence";
+import { generateAIQuiz } from "@/utils/quizGeneration";
+import { getFeatureAccess, recordFeatureUse } from "@/utils/access";
+import { API_BASE } from "@/utils/apiConfig";
+
+interface Question {
+  q: string;
+  options: string[];
+  answer: number;
+}
+
+const QUESTION_BANK: Record<string, Question[]> = {
+  Biology: [
+    { q: "What is the powerhouse of the cell?", options: ["Nucleus", "Mitochondria", "Ribosome", "Golgi body"], answer: 1 },
+    { q: "What gas do plants absorb during photosynthesis?", options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"], answer: 2 },
+    { q: "What is the basic unit of life?", options: ["Atom", "Organ", "Cell", "Tissue"], answer: 2 },
+    { q: "Which protein carries oxygen in red blood cells?", options: ["Insulin", "Keratin", "Hemoglobin", "Collagen"], answer: 2 },
+    { q: "How many chromosomes do humans normally have?", options: ["23", "46", "44", "48"], answer: 1 },
+    { q: "Which organ produces insulin?", options: ["Liver", "Kidney", "Heart", "Pancreas"], answer: 3 },
+    { q: "What is the function of ribosomes?", options: ["Energy production", "Protein synthesis", "DNA replication", "Digestion"], answer: 1 },
+    { q: "Which blood type is the universal donor?", options: ["A+", "B-", "O-", "AB+"], answer: 2 },
+    { q: "What part of the plant cell is not found in animal cells?", options: ["Mitochondria", "Cell membrane", "Cell wall", "Nucleus"], answer: 2 },
+    { q: "What is the process of cell division called?", options: ["Osmosis", "Meiosis / Mitosis", "Photosynthesis", "Respiration"], answer: 1 },
+  ],
+  Math: [
+    { q: "What is π approximately equal to?", options: ["2.71828", "3.14159", "1.61803", "1.41421"], answer: 1 },
+    { q: "What is the Pythagorean theorem?", options: ["a+b=c", "a²+b²=c²", "a×b=c²", "a²-b²=c"], answer: 1 },
+    { q: "What is the derivative of x²?", options: ["x", "2", "2x", "x²"], answer: 2 },
+    { q: "What is 15% of 200?", options: ["25", "30", "20", "35"], answer: 1 },
+    { q: "What is √144?", options: ["11", "13", "14", "12"], answer: 3 },
+    { q: "Area of a circle with radius r?", options: ["2πr", "πr²", "πd", "2πr²"], answer: 1 },
+    { q: "What is 2¹⁰?", options: ["512", "2048", "1024", "256"], answer: 2 },
+    { q: "Sum of angles in a triangle?", options: ["90°", "270°", "360°", "180°"], answer: 3 },
+    { q: "What is log₁₀(1000)?", options: ["2", "4", "3", "10"], answer: 2 },
+    { q: "What is a prime number?", options: ["Divisible by 2", "Only by 1 and itself", "An even number", "Greater than 100"], answer: 1 },
+  ],
+  Chemistry: [
+    { q: "Chemical symbol for water?", options: ["HO", "H₂O₂", "H₂O", "OH"], answer: 2 },
+    { q: "pH of pure water?", options: ["5", "9", "7", "1"], answer: 2 },
+    { q: "Atomic number of Carbon?", options: ["8", "12", "4", "6"], answer: 3 },
+    { q: "Which bond involves sharing of electrons?", options: ["Ionic", "Metallic", "Hydrogen", "Covalent"], answer: 3 },
+    { q: "Most abundant gas in Earth's atmosphere?", options: ["Oxygen", "Carbon dioxide", "Argon", "Nitrogen"], answer: 3 },
+    { q: "Oxidation means?", options: ["Gain of electrons", "Loss of protons", "Loss of electrons", "Gain of neutrons"], answer: 2 },
+    { q: "Chemical formula of glucose?", options: ["C₁₂H₂₂O₁₁", "C₆H₁₂O₆", "C₂H₅OH", "CH₄"], answer: 1 },
+    { q: "Avogadro's number is approximately?", options: ["3.0 × 10²³", "6.022 × 10²³", "9.8 × 10²³", "1.6 × 10²³"], answer: 1 },
+    { q: "What is an isotope?", options: ["Different element, same mass", "Same element, different neutrons", "Different element, same protons", "Same element, different protons"], answer: 1 },
+    { q: "Valence electrons of oxygen?", options: ["4", "8", "2", "6"], answer: 3 },
+  ],
+  Physics: [
+    { q: "What is Newton's first law about?", options: ["Gravity", "Inertia", "Action-Reaction", "Acceleration"], answer: 1 },
+    { q: "Speed of light in vacuum?", options: ["3 × 10⁶ m/s", "3 × 10⁸ m/s", "3 × 10¹⁰ m/s", "3 × 10⁴ m/s"], answer: 1 },
+    { q: "What does E=mc² represent?", options: ["Force = mass × acceleration", "Energy = mass × c²", "Electric field equation", "Entropy formula"], answer: 1 },
+    { q: "Unit of force in SI?", options: ["Joule", "Pascal", "Newton", "Watt"], answer: 2 },
+    { q: "Formula for kinetic energy?", options: ["mgh", "½mv²", "mv", "Fd"], answer: 1 },
+    { q: "Unit of electric resistance?", options: ["Volt", "Ampere", "Watt", "Ohm"], answer: 3 },
+    { q: "Ohm's Law states?", options: ["P = VI", "V = IR", "F = ma", "E = mc²"], answer: 1 },
+    { q: "Unit of power?", options: ["Newton", "Joule", "Watt", "Pascal"], answer: 2 },
+    { q: "Unit of electric charge?", options: ["Volt", "Ampere", "Coulomb", "Farad"], answer: 2 },
+    { q: "Why is the sky blue?", options: ["Reflection", "Refraction", "Rayleigh scattering", "Diffraction"], answer: 2 },
+  ],
+  History: [
+    { q: "When did World War II end?", options: ["1943", "1944", "1946", "1945"], answer: 3 },
+    { q: "First President of the United States?", options: ["Thomas Jefferson", "Abraham Lincoln", "George Washington", "John Adams"], answer: 2 },
+    { q: "When did the French Revolution begin?", options: ["1776", "1799", "1789", "1804"], answer: 2 },
+    { q: "When did the Berlin Wall fall?", options: ["1991", "1985", "1989", "1987"], answer: 2 },
+    { q: "Who discovered the Americas in 1492?", options: ["Vasco da Gama", "Christopher Columbus", "Ferdinand Magellan", "Amerigo Vespucci"], answer: 1 },
+    { q: "When did World War I start?", options: ["1914", "1918", "1939", "1910"], answer: 0 },
+    { q: "Who invented the telephone?", options: ["Thomas Edison", "Nikola Tesla", "Alexander Graham Bell", "Guglielmo Marconi"], answer: 2 },
+    { q: "When did the Soviet Union collapse?", options: ["1989", "1993", "1991", "1985"], answer: 2 },
+    { q: "Cold War was mainly between?", options: ["USA and China", "UK and Germany", "USA and USSR", "France and Russia"], answer: 2 },
+    { q: "Who wrote 'The Communist Manifesto'?", options: ["Lenin and Stalin", "Marx and Engels", "Mao and Castro", "Trotsky and Lenin"], answer: 1 },
+  ],
+};
+
+function shuffle<T>(arr: T[]): T[] {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function getQuestions(subject: string): Question[] {
+  const pool =
+    subject === "All"
+      ? Object.values(QUESTION_BANK).flat()
+      : QUESTION_BANK[subject] ?? QUESTION_BANK["Biology"];
+  return shuffle(pool).slice(0, 10);
+}
+
+interface Props {
+  visible: boolean;
+  subject: string;
+  skillId?: string;
+  onClose: () => void;
+  onComplete?: (scoreFraction: number) => void;
+}
+
+export default function QuizModal({ visible, subject, skillId, onClose, onComplete }: Props) {
+  const colors = useColors();
+  const { addXP, incrementQuizzes } = useUser();
+  const { getToken } = useAuth();
+
+  const [questions, setQuestions] = useState(() => getQuestions(subject));
+  const [current, setCurrent] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+  const [totalXP, setTotalXP] = useState(0);
+  const [fadeAnim] = useState(new Animated.Value(1));
+  const [warningVisible, setWarningVisible] = useState(false);
+  const [quote] = useState(() => randomQuote(QUIT_WARNING_QUOTES));
+  const [usingAI, setUsingAI] = useState(false);
+  // Tracks whether the learner has answered anything yet in this session,
+  // so a personalized quiz that arrives after they've already started
+  // never swaps the questions out from under them mid-quiz.
+  const startedRef = useRef(false);
+  // getToken's identity from @clerk/expo is not guaranteed to stay stable
+  // across renders, and this effect resets the entire quiz (current index,
+  // score, done). Putting getToken directly in the deps array would re-run
+  // that reset on any re-render that happens to hand back a new getToken
+  // reference — including the re-render triggered by addXP/incrementQuizzes
+  // right after the learner finishes the quiz, which would bounce them off
+  // the results screen back to question 1. Read it via a ref instead so the
+  // effect only re-runs for the things that should actually restart it.
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
+
+  useEffect(() => {
+    if (!visible) return;
+    setQuestions(getQuestions(subject));
+    setCurrent(0);
+    setSelected(null);
+    setScore(0);
+    setDone(false);
+    setTotalXP(0);
+    setWarningVisible(false);
+    setUsingAI(false);
+    startedRef.current = false;
+    fadeAnim.setValue(1);
+
+    // The static bank set above renders immediately, so quiz start is never
+    // blocked on the network. This is a best-effort upgrade on top of it:
+    // if a personalized, never-repeating quiz targeting the learner's
+    // actual weak areas arrives before they answer anything, it quietly
+    // replaces the static one. If it's slow, offline, or they've hit their
+    // daily free-generation limit, they simply keep the static quiz they
+    // already have on screen — the feature can only make things better,
+    // never block or break the quiz.
+    if (subject === "All") return; // one subject at a time for now
+    let active = true;
+    (async () => {
+      const access = await getFeatureAccess("quizGenerations");
+      if (!active || !access.allowed) return;
+      const token = await getTokenRef.current();
+      const generated = await generateAIQuiz({
+        baseUrl: API_BASE,
+        token,
+        subject,
+        skillId,
+        count: 8,
+      });
+      if (!active || !generated || startedRef.current) return;
+      setQuestions(generated);
+      setCurrent(0);
+      setUsingAI(true);
+      recordFeatureUse("quizGenerations").catch(() => {});
+    })();
+    return () => {
+      active = false;
+    };
+  }, [visible, subject, skillId, fadeAnim]);
+
+  const requestClose = useCallback(() => {
+    if (done) {
+      onClose();
+    } else {
+      setWarningVisible(true);
+    }
+  }, [done, onClose]);
+
+  const q = questions[current];
+  const progress = (current + 1) / questions.length;
+
+  const handleSelect = useCallback(
+    (idx: number) => {
+      if (selected !== null) return;
+      startedRef.current = true;
+      setSelected(idx);
+      const correct = idx === q.answer;
+      if (correct) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setScore((s) => s + 1);
+        setTotalXP((x) => x + 5);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+
+      setTimeout(() => {
+        Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+          const isLast = current + 1 >= questions.length;
+          if (isLast) {
+            const finalScore = score + (correct ? 1 : 0);
+            const finalXP = finalScore * 5;
+            incrementQuizzes();
+            addXP(finalXP);
+            setTotalXP(finalXP);
+            setDone(true);
+            onComplete?.(finalScore / questions.length);
+            getToken().then((token) =>
+              postLearnerEvidence({
+                token,
+                evidenceType: "quiz",
+                skillId: skillId ?? `${subject}:0`,
+                subject,
+                score: finalScore / questions.length,
+                correct: finalScore,
+                total: questions.length,
+              }),
+            ).catch(() => {});
+          } else {
+            setCurrent((c) => c + 1);
+            setSelected(null);
+          }
+          fadeAnim.setValue(1);
+        });
+      }, 900);
+    },
+    [selected, q, current, questions.length, fadeAnim, score, addXP, incrementQuizzes, getToken, skillId, subject, onComplete]
+  );
+
+  const optionBg = (idx: number) => {
+    if (selected === null) return colors.card;
+    if (idx === q.answer) return "#DCFCE7";
+    if (idx === selected && idx !== q.answer) return "#FEF2F2";
+    return colors.card;
+  };
+  const optionBorder = (idx: number) => {
+    if (selected === null) return colors.border;
+    if (idx === q.answer) return "#10B981";
+    if (idx === selected && idx !== q.answer) return "#EF4444";
+    return colors.border;
+  };
+  const optionTextColor = (idx: number) => {
+    if (selected === null) return colors.text;
+    if (idx === q.answer) return "#059669";
+    if (idx === selected && idx !== q.answer) return "#DC2626";
+    return colors.textMuted;
+  };
+
+  const grade = (s: number) => {
+    const pct = s / questions.length;
+    if (pct >= 0.9) return { label: "Excellent!", color: "#F59E0B" };
+    if (pct >= 0.7) return { label: "Great job!", color: "#1D72E8" };
+    if (pct >= 0.5) return { label: "Good effort!", color: "#0EA5E9" };
+    return { label: "Keep studying!", color: "#94A3B8" };
+  };
+
+  const finalScore = done ? score : 0;
+  const g = grade(finalScore);
+
+  return (
+    <>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={requestClose}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {!done ? (
+          <>
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
+              <Pressable onPress={requestClose} style={styles.closeBtn}>
+                <Ionicons name="close" size={22} color={colors.textSecondary} />
+              </Pressable>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.quizTitle, { color: colors.text, fontFamily: "Inter_700Bold" }]}>
+                  {subject === "All" ? "Mixed Quiz" : `${subject} Quiz`}
+                </Text>
+                <Text style={[styles.quizSub, { color: colors.textMuted, fontFamily: "Inter_400Regular" }]}>
+                  Question {current + 1} of {questions.length}
+                  {usingAI ? " · Personalized for you" : ""}
+                </Text>
+              </View>
+              <View style={[styles.scorePill, { backgroundColor: "#FFFBEB" }]}>
+                <Ionicons name="star" size={13} color="#F59E0B" />
+                <Text style={[styles.scoreNum, { color: "#F59E0B", fontFamily: "Inter_700Bold" }]}>
+                  {score}
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.progressTrack, { backgroundColor: colors.muted }]}>
+              <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: colors.primary }]} />
+            </View>
+
+            <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+              <Animated.View style={{ opacity: fadeAnim }}>
+                <View style={[styles.questionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.questionNum, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                    Q{current + 1}
+                  </Text>
+                  <Text style={[styles.questionText, { color: colors.text, fontFamily: "Inter_600SemiBold" }]}>
+                    {q.q}
+                  </Text>
+                </View>
+                <View style={styles.options}>
+                  {q.options.map((opt, idx) => (
+                    <Pressable
+                      key={idx}
+                      style={[styles.option, { backgroundColor: optionBg(idx), borderColor: optionBorder(idx) }]}
+                      onPress={() => handleSelect(idx)}
+                    >
+                      <View style={[styles.optionLetter, { borderColor: optionBorder(idx) }]}>
+                        <Text style={[styles.optionLetterTxt, { color: optionTextColor(idx), fontFamily: "Inter_700Bold" }]}>
+                          {["A", "B", "C", "D"][idx]}
+                        </Text>
+                      </View>
+                      <Text style={[styles.optionTxt, { color: optionTextColor(idx), fontFamily: "Inter_500Medium" }]}>
+                        {opt}
+                      </Text>
+                      {selected !== null && idx === q.answer && (
+                        <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                      )}
+                      {selected === idx && idx !== q.answer && (
+                        <Ionicons name="close-circle" size={20} color="#EF4444" />
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              </Animated.View>
+            </ScrollView>
+          </>
+        ) : (
+          <ScrollView contentContainerStyle={styles.results} showsVerticalScrollIndicator={false}>
+            <View style={[styles.resultIcon, { backgroundColor: g.color + "15" }]}>
+              <Ionicons name="trophy" size={48} color={g.color} />
+            </View>
+            <Text style={[styles.gradeLabel, { color: g.color, fontFamily: "Inter_700Bold" }]}>
+              {g.label}
+            </Text>
+            <Text style={[styles.scoreDisplay, { color: colors.text, fontFamily: "Inter_700Bold" }]}>
+              {finalScore} / {questions.length}
+            </Text>
+            <Text style={[styles.scoreSubtitle, { color: colors.textMuted, fontFamily: "Inter_400Regular" }]}>
+              correct answers
+            </Text>
+            <View style={styles.resultStats}>
+              <View style={[styles.resultStat, { backgroundColor: "#FFFBEB", borderColor: "#FDE68A" }]}>
+                <Ionicons name="star" size={20} color="#F59E0B" />
+                <Text style={[styles.resultStatVal, { color: "#F59E0B", fontFamily: "Inter_700Bold" }]}>
+                  +{totalXP} XP
+                </Text>
+                <Text style={[styles.resultStatLabel, { color: colors.textMuted, fontFamily: "Inter_400Regular" }]}>
+                  earned
+                </Text>
+              </View>
+              <View style={[styles.resultStat, { backgroundColor: colors.primary + "10", borderColor: colors.primary + "30" }]}>
+                <Ionicons name="help-circle" size={20} color={colors.primary} />
+                <Text style={[styles.resultStatVal, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
+                  {Math.round((finalScore / questions.length) * 100)}%
+                </Text>
+                <Text style={[styles.resultStatLabel, { color: colors.textMuted, fontFamily: "Inter_400Regular" }]}>
+                  accuracy
+                </Text>
+              </View>
+            </View>
+            <Pressable style={[styles.doneBtn, { backgroundColor: colors.primary }]} onPress={onClose}>
+              <Text style={[styles.doneBtnTxt, { fontFamily: "Inter_700Bold" }]}>Done</Text>
+            </Pressable>
+          </ScrollView>
+        )}
+      </View>
+    </Modal>
+    <QuitWarningModal
+      visible={warningVisible}
+      quote={quote}
+      onStay={() => setWarningVisible(false)}
+      onLeave={() => {
+        setWarningVisible(false);
+        onClose();
+      }}
+    />
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16, borderBottomWidth: 1 },
+  closeBtn: { padding: 4 },
+  quizTitle: { fontSize: 17 },
+  quizSub: { fontSize: 12, marginTop: 2 },
+  scorePill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  scoreNum: { fontSize: 15 },
+  progressTrack: { height: 4 },
+  progressFill: { height: 4, borderRadius: 2 },
+  body: { padding: 20, gap: 20 },
+  questionCard: { padding: 22, borderRadius: 20, borderWidth: 1, gap: 10 },
+  questionNum: { fontSize: 12, letterSpacing: 1 },
+  questionText: { fontSize: 18, lineHeight: 26 },
+  options: { gap: 12 },
+  option: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 16, borderWidth: 1.5 },
+  optionLetter: { width: 32, height: 32, borderRadius: 10, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
+  optionLetterTxt: { fontSize: 13 },
+  optionTxt: { flex: 1, fontSize: 15, lineHeight: 21 },
+  results: { padding: 32, alignItems: "center", gap: 16 },
+  resultIcon: { width: 100, height: 100, borderRadius: 30, alignItems: "center", justifyContent: "center" },
+  gradeLabel: { fontSize: 24, marginTop: 8 },
+  scoreDisplay: { fontSize: 52, lineHeight: 60 },
+  scoreSubtitle: { fontSize: 15 },
+  resultStats: { flexDirection: "row", gap: 12, marginTop: 8 },
+  resultStat: { flex: 1, alignItems: "center", padding: 18, borderRadius: 18, borderWidth: 1, gap: 6 },
+  resultStatVal: { fontSize: 22 },
+  resultStatLabel: { fontSize: 12 },
+  doneBtn: { width: "100%", paddingVertical: 16, borderRadius: 18, alignItems: "center", marginTop: 16 },
+  doneBtnTxt: { color: "#fff", fontSize: 16 },
+});
