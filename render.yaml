@@ -7,7 +7,7 @@ services:
     plan: free            # free plans sleep after 15 min idle; use "starter" for reliable webhooks
     region: frankfurt
     healthCheckPath: /api/healthz
-    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false --filter "@workspace/api-server..." && pnpm --filter @workspace/api-server run build
+    buildCommand: pnpm install --frozen-lockfile --prod=false --filter "@workspace/api-server..." && pnpm --filter @workspace/api-server run build
     startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
     envVars:
       - key: NODE_VERSION

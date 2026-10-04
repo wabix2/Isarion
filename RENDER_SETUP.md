@@ -4,7 +4,7 @@
 2. Render dashboard -> New -> Blueprint -> pick the repo (it reads `render.yaml`).
 3. Database: create a Postgres (Render -> New -> PostgreSQL, or use any external one).
    Paste its *External/Internal connection string* into `DATABASE_URL`.
-4. Create the tables once, in order:
+4. Tables are created automatically on startup (set RUN_MIGRATIONS=false to disable). Manual option:
    ```
    for f in lib/db/migrations/000*.sql; do psql "$DATABASE_URL" -f "$f"; done
    ```
