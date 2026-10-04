@@ -1,0 +1,26 @@
+# Render Blueprint for the Isarion/Lumiq API server (Express 5).
+# Webhook URL for Clerk:  https://<service-name>.onrender.com/api/webhooks/clerk
+services:
+  - type: web
+    name: isarion-api
+    runtime: node
+    plan: free            # free plans sleep after 15 min idle; use "starter" for reliable webhooks
+    region: frankfurt
+    healthCheckPath: /api/healthz
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false --filter "@workspace/api-server..." && pnpm --filter @workspace/api-server run build
+    startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
+    envVars:
+      - key: NODE_VERSION
+        value: "24"       # workspace packages are imported as .ts, needs Node 24
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_WEBHOOK_SECRET   # "Signing secret" (whsec_...) from the Clerk webhook endpoint
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

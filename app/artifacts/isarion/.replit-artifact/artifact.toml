@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/isarion/"
+title = "Isarion"
+description = "A teach-back learning app that helps learners understand subjects by explaining concepts in their own words, practicing with adaptive quizzes, and tracking mastery."
+version = "1.0.0"
+id = "artifacts/isarion"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/isarion/" ]
+localPort = 20917
+
+[services.development]
+run = "pnpm --filter @workspace/isarion run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/isarion", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/isarion", "run", "serve" ]
+
+[services.env]
+PORT = "20917"
+BASE_PATH = "/isarion/"

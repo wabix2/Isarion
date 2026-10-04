@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>APP_NAME_PLACEHOLDER — your AI study coach</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Isarion is a Feynman-style AI tutor with adaptive quizzes, flashcards, and streaks that keep you coming back — for the right reasons." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="APP_NAME_PLACEHOLDER — your AI study coach" />
+    <meta property="og:description" content="Feynman-style AI tutoring, adaptive quizzes, and streaks that actually stick." />
+    <meta property="og:url" content="BASE_URL_PLACEHOLDER/" />
+    <meta property="og:image" content="BASE_URL_PLACEHOLDER/invite-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="APP_NAME_PLACEHOLDER — your AI study coach" />
+    <meta name="twitter:image" content="BASE_URL_PLACEHOLDER/invite-card.png" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='180' height='180' rx='36' fill='%230A0C14'/%3E%3Cpath d='M58 122 C69 111 76 107 87 96 C98 85 105 78 110 72' stroke='%238A8FAE' stroke-width='4.3' stroke-linecap='round'/%3E%3Ccircle cx='58' cy='122' r='7.2' fill='%234B5170'/%3E%3Ccircle cx='87' cy='93.6' r='9.4' fill='%23C7CBE0'/%3E%3Cpolygon points='118.8 45 122.6 57.4 135 61.2 122.6 65 118.8 77.4 115 65 102.6 61.2 115 57.4' fill='%23818CF8'/%3E%3C/svg%3E" />
+    <style>
+      * { box-sizing: border-box; }
+      :root {
+        --bg: #05060A;
+        --panel: #10131E;
+        --panel-border: rgba(255,255,255,0.08);
+        --text: #F5F6FA;
+        --text-muted: #9CA3AF;
+        --accent: #818CF8;
+        --accent-2: #F97316;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+      a { color: inherit; }
+      .hero {
+        background:
+          radial-gradient(120% 100% at 85% 0%, rgba(249,115,22,0.35), transparent 60%),
+          linear-gradient(135deg, #05060A 0%, #151E42 45%, #3730A3 85%);
+        padding: 56px 20px 64px;
+        text-align: center;
+      }
+      .wrapper { max-width: 640px; margin: 0 auto; }
+      .brand-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 28px;
+      }
+      .brand-mark {
+        width: 34px; height: 34px; border-radius: 11px;
+        background: #fff;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .brand-name { font-weight: 800; font-size: 17px; letter-spacing: 0.3px; }
+      .eyebrow {
+        font-size: 12px; font-weight: 700; letter-spacing: 2.4px;
+        color: rgba(255,255,255,0.65); text-transform: uppercase; margin-bottom: 12px;
+      }
+      h1 { font-size: 34px; font-weight: 800; margin: 0 0 12px; letter-spacing: -0.5px; }
+      .subtitle { font-size: 16px; color: rgba(255,255,255,0.78); margin: 0 auto 32px; max-width: 460px; }
+      .cta-row { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+      .btn-primary {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; max-width: 320px;
+        padding: 15px 22px; border-radius: 14px;
+        background: #fff; color: #10131E;
+        font-weight: 700; font-size: 15px; text-decoration: none;
+        transition: opacity 0.15s;
+      }
+      .btn-primary[data-disabled="true"] {
+        opacity: 0.55; cursor: default; pointer-events: none;
+      }
+      .btn-primary:hover { opacity: 0.92; }
+      .btn-secondary {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; max-width: 320px;
+        padding: 13px 22px; border-radius: 14px;
+        background: rgba(255,255,255,0.08); color: #fff;
+        border: 1px solid rgba(255,255,255,0.18);
+        font-weight: 600; font-size: 14px; text-decoration: none;
+      }
+      .platform-note { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 6px; }
+
+      .invite-banner {
+        max-width: 460px; margin: 32px auto 0;
+        background: var(--panel); border: 1px solid var(--panel-border);
+        border-radius: 20px; padding: 16px; text-align: left;
+      }
+      .invite-card-img { width: 100%; border-radius: 12px; display: block; margin-bottom: 14px; }
+      .invite-copy strong { font-size: 15px; }
+      .invite-copy p { margin: 4px 0 14px; color: var(--text-muted); font-size: 13px; }
+      .invite-code { color: var(--accent); font-weight: 700; letter-spacing: 1px; }
+      .invite-open-btn {
+        display: block; text-align: center; padding: 12px; border-radius: 12px;
+        background: var(--accent); color: #0A0C12; font-weight: 700; font-size: 14px; text-decoration: none;
+      }
+
+      .body-section { padding: 48px 20px; }
+      .features {
+        max-width: 720px; margin: 0 auto;
+        display: grid; grid-template-columns: 1fr; gap: 14px;
+      }
+      .feature {
+        background: var(--panel); border: 1px solid var(--panel-border);
+        border-radius: 16px; padding: 20px;
+      }
+      .feature-icon {
+        width: 36px; height: 36px; border-radius: 11px;
+        background: rgba(129,140,248,0.18); color: var(--accent);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 17px; margin-bottom: 12px;
+      }
+      .feature h3 { font-size: 15px; margin: 0 0 6px; }
+      .feature p { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+      .qr-panel {
+        max-width: 320px; margin: 40px auto 0; text-align: center;
+        background: var(--panel); border: 1px solid var(--panel-border);
+        border-radius: 18px; padding: 20px;
+      }
+      .qr-panel p { font-size: 13px; color: var(--text-muted); margin: 10px 0 0; }
+      .qr-code { width: 160px; height: 160px; margin: 0 auto; background: #fff; border-radius: 10px; padding: 10px; }
+
+      footer { text-align: center; padding: 28px 20px 48px; font-size: 12px; color: var(--text-muted); }
+
+      @media (min-width: 768px) {
+        h1 { font-size: 42px; }
+        .features { grid-template-columns: repeat(3, 1fr); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <div class="wrapper">
+        <div class="brand-row">
+          <div class="brand-mark">
+            <svg width="18" height="18" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 30 C15 27 17 26 20 23 C23 20 25 18 26.5 16.5" stroke="#8A8FAE" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              <circle cx="12" cy="30" r="2.4" fill="#4B5170"/>
+              <circle cx="21.6" cy="21.6" r="3.1" fill="#C7CBE0"/>
+              <polygon points="31.6 12.5 32.9 16.6 37 18 32.9 19.4 31.6 23.5 30.3 19.4 26.2 18 30.3 16.6" fill="#818CF8"/>
+            </svg>
+          </div>
+          <span class="brand-name">APP_NAME_PLACEHOLDER</span>
+        </div>
+
+        <div class="eyebrow">AI study coach</div>
+        <h1>Learn anything faster.</h1>
+        <p class="subtitle">Feynman-style AI tutoring, adaptive quizzes, and streaks that actually stick — not another app you'll abandon in a week.</p>
+
+        <div class="cta-row">
+          <a id="download-btn" class="btn-primary" href="DOWNLOAD_HREF_PLACEHOLDER" data-ready="DOWNLOAD_READY_PLACEHOLDER">
+            DOWNLOAD_LABEL_PLACEHOLDER
+          </a>
+          <a id="open-app-btn" class="btn-secondary" href="lumiq-ai://">Already have it? Open the app</a>
+          <div class="platform-note" id="platform-note"></div>
+        </div>
+
+        INVITE_BANNER_PLACEHOLDER
+
+        <div class="qr-panel" id="qr-panel">
+          <div class="qr-code" id="qr-code"></div>
+          <p>Scan with your phone's camera to download</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="body-section">
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">✦</div>
+          <h3>Feynman tutoring</h3>
+          <p>Explain a concept back in your own words and get real-time, specific feedback on the gaps.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">◆</div>
+          <h3>Adaptive quizzes</h3>
+          <p>Questions and next steps that adjust to what you actually know, not a fixed syllabus.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">▲</div>
+          <h3>Streaks that stick</h3>
+          <p>Daily streaks with a healthy streak-freeze safety net — momentum without the guilt spiral.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer>APP_NAME_PLACEHOLDER · study smarter, every day</footer>
+
+    <script src="https://unpkg.com/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
+    <script>
+      (function () {
+        const downloadBtn = document.getElementById('download-btn');
+        const isReady = downloadBtn.getAttribute('data-ready') === 'true';
+        if (!isReady) {
+          downloadBtn.setAttribute('data-disabled', 'true');
+          downloadBtn.removeAttribute('href');
+        }
+
+        const ua = navigator.userAgent;
+        const isAndroid = /Android/i.test(ua);
+        const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isMobile = isAndroid || isIOS;
+        const note = document.getElementById('platform-note');
+        if (isIOS) {
+          note.textContent = 'iOS support is on the way — Android is available now.';
+        }
+
+        // On mobile, try the app's own deep link first; if the app isn't
+        // installed this simply does nothing (no Expo Go dependency, no
+        // dev-only "exps://" scheme — that was a leftover from the Expo
+        // default template and never worked for real end users).
+        const openBtn = document.getElementById('open-app-btn');
+        if (!isMobile) {
+          openBtn.style.display = 'none';
+        }
+
+        const qrTarget = isReady ? downloadBtn.href : (location.origin + location.pathname);
+        const qrCode = new QRCodeStyling({
+          width: 300,
+          height: 300,
+          data: qrTarget,
+          dotsOptions: { color: '#151E42', type: 'rounded' },
+          backgroundOptions: { color: '#ffffff' },
+          cornersSquareOptions: { type: 'extra-rounded' },
+          cornersDotOptions: { type: 'dot' },
+          qrOptions: { errorCorrectionLevel: 'H' },
+        });
+        qrCode.append(document.getElementById('qr-code'));
+
+        // On mobile, the QR panel is redundant (the buttons above already
+        // do the job) — keep it for desktop visitors scanning with a phone.
+        if (isMobile) {
+          document.getElementById('qr-panel').style.display = 'none';
+        }
+      })();
+    </script>
+  </body>
+</html>
