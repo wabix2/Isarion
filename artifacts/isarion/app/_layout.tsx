@@ -1,5 +1,3 @@
-import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
-import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -20,12 +18,14 @@ import LevelUpModal from "@/components/LevelUpModal";
 import PremiumPaywallModal from "@/components/PremiumPaywallModal";
 import StreakFreezeUsedModal from "@/components/StreakFreezeUsedModal";
 import StreakMilestoneModal from "@/components/StreakMilestoneModal";
+import { AppAuthProvider, useAppAuth } from "@/context/AuthContext";
+import { LessonProgressProvider } from "@/context/LessonProgressContext";
 import { UserProvider, useUser } from "@/context/UserContext";
+import { resolveStartupRoute, type StartupRoute } from "@/utils/authConfig";
 import { isPremiumUser } from "@/utils/premium";
 import { shouldShowWinMomentPaywall, recordWinMomentPaywallShown } from "@/utils/winMomentPaywall";
 
 const queryClient = new QueryClient();
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
 
 // Paywall shown right after a level-up or streak milestone closes, instead
 // of only at a free-tier limit hit. Same underlying PremiumPaywallModal,
@@ -108,62 +108,50 @@ function GlobalCelebrations() {
   );
 }
 
-function AuthRedirect() {
-  const { isSignedIn, isLoaded } = useAuth();
+// Guest-first: startup waits only for the local user record. Clerk's loading
+// state and network reachability are never inputs, so an offline device or a
+// build without Clerk keys still reaches the app. Sign-in is opt-in.
+function useStartupRoute() {
+  const { isSignedIn } = useAppAuth();
   const { user, isLoaded: userLoaded } = useUser();
   const segments = useSegments();
+  return resolveStartupRoute({
+    userLoaded,
+    isOnboarded: user.isOnboarded,
+    isSignedIn,
+    segment: segments[0],
+  });
+}
+
+function StartupRedirect({ route }: { route: StartupRoute }) {
   const router = useRouter();
-
   useEffect(() => {
-    // Wait for both Clerk's auth state and the local user record to be
-    // ready. Redirecting on the DEFAULT placeholder user (isOnboarded:
-    // false) before AsyncStorage finishes loading would briefly send an
-    // already-onboarded user back to the onboarding screen.
-    if (!isLoaded || !userLoaded) return;
-
-    const inAuthGroup = segments[0] === "(auth)";
-    const inOnboarding = segments[0] === "onboarding";
-
-    if (!isSignedIn && !inAuthGroup) {
-      router.replace("/(auth)/sign-in");
-    } else if (isSignedIn && !user.isOnboarded && !inOnboarding) {
-      router.replace("/onboarding");
-    } else if (isSignedIn && user.isOnboarded && (inAuthGroup || inOnboarding)) {
-      router.replace("/");
-    }
-  }, [isSignedIn, isLoaded, userLoaded, segments, user.isOnboarded, router]);
-
+    if (route === "onboarding") router.replace("/onboarding");
+    else if (route === "home") router.replace("/");
+  }, [route, router]);
   return null;
 }
 
 function RootLayoutNav() {
-  const { isSignedIn, isLoaded } = useAuth();
-  const { user, isLoaded: userLoaded } = useUser();
-  const segments = useSegments();
-  const inAuthGroup = segments[0] === "(auth)";
-  const inOnboarding = segments[0] === "onboarding";
+  const route = useStartupRoute();
+  const appReady = route !== "loading";
 
-  const appReady = isLoaded && userLoaded;
-  const needsSignIn = appReady && !isSignedIn && !inAuthGroup;
-  const needsOnboarding = appReady && isSignedIn && !user.isOnboarded && !inOnboarding;
-  const needsHome = appReady && isSignedIn && user.isOnboarded && (inAuthGroup || inOnboarding);
-
-  // Hide the native splash only once we know which screen we're actually
-  // showing — otherwise it hides under the auth-loading spinner and the
-  // user still sees a flash-then-blank transition.
   useEffect(() => {
-    if (appReady) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
+    if (appReady) SplashScreen.hideAsync().catch(() => {});
   }, [appReady]);
+
+  // Failsafe: never leave the native splash up if storage hangs.
+  useEffect(() => {
+    const t = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 6000);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <>
-      <AuthRedirect />
-      {/* Do not render the app stack while a guard redirect is pending. Expo
-          Router can initially resolve "/" to the tabs group, which otherwise
-          produces a visible home-screen flash before AuthRedirect runs. */}
-      {!appReady || needsSignIn || needsOnboarding || needsHome ? (
+      <StartupRedirect route={route} />
+      {/* Do not render the app stack while a redirect is pending, so the
+          home screen never flashes before onboarding. */}
+      {route !== "stay" ? (
         <AuthLoadingScreen />
       ) : (
         <>
@@ -174,6 +162,8 @@ function RootLayoutNav() {
               options={{ headerShown: false, gestureEnabled: false, animation: "fade" }}
             />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="learn/index" options={{ headerShown: false, presentation: "card" }} />
+            <Stack.Screen name="learn/[lessonId]" options={{ headerShown: false, presentation: "card" }} />
             <Stack.Screen
               name="privacy-policy"
               options={{ headerShown: false, presentation: "card" }}
@@ -209,13 +199,13 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
-            <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-              <ClerkLoaded>
-                <UserProvider>
+            <AppAuthProvider>
+              <UserProvider>
+                <LessonProgressProvider>
                   <RootLayoutNav />
-                </UserProvider>
-              </ClerkLoaded>
-            </ClerkProvider>
+                </LessonProgressProvider>
+              </UserProvider>
+            </AppAuthProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
       </ErrorBoundary>

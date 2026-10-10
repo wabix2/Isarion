@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { useAuth } from "@clerk/expo";
+import { useAppAuth } from "@/context/AuthContext";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -112,7 +112,7 @@ interface Props {
 export default function QuizModal({ visible, subject, skillId, onClose, onComplete }: Props) {
   const colors = useColors();
   const { addXP, incrementQuizzes } = useUser();
-  const { getToken } = useAuth();
+  const { getToken } = useAppAuth();
 
   const [questions, setQuestions] = useState(() => getQuestions(subject));
   const [current, setCurrent] = useState(0);

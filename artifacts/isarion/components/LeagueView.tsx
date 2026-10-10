@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/expo";
+import { useAppAuth } from "@/context/AuthContext";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
@@ -37,7 +37,7 @@ function timeLeft(endsAt: string): string {
 /** Weekly league: a group of ~30 learners in the same tier, ranked by XP earned this week. */
 export default function LeagueView() {
   const colors = useColors();
-  const { getToken } = useAuth();
+  const { getToken } = useAppAuth();
   const [data, setData] = useState<LeagueData | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "needs-sync" | "error">("loading");
 

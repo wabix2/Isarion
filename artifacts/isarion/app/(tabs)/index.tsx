@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/expo";
+import { useAppAuth } from "@/context/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -25,7 +25,7 @@ export default function TabOneScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { getToken } = useAuth();
+  const { getToken } = useAppAuth();
   const { user } = useUser();
   const [recommendation, setRecommendation] = useState<HomeRecommendation>(() =>
     getLocalRecommendation({ subjects: user.subjects, skillProgress: user.skillProgress }),

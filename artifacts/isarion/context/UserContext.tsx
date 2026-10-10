@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useAuth } from "@clerk/expo";
+import { useAppAuth } from "@/context/AuthContext";
+import { mergeProgress } from "@/utils/progressMerge";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { makeReferralCode } from "@/utils/referral";
 import { API_BASE } from "@/utils/apiConfig";
@@ -110,7 +111,7 @@ const BASE_URL = API_BASE;
 const UserContext = createContext<UserContextType | null>(null);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const { getToken, userId } = useAuth();
+  const { getToken, userId, isSignedIn, clerkEnabled } = useAppAuth();
   const [user, setUser] = useState<UserState>(DEFAULT);
   const [loaded, setLoaded] = useState(false);
   const [pendingLevelUp, setPendingLevelUp] = useState<LevelUpEvent | null>(null);
@@ -227,7 +228,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // Auto-backup to the server a couple seconds after any change, once an account is linked.
   useEffect(() => {
-    if (!loaded || !user.email || !BASE_URL) return;
+    // Backups are identity-bound: only for a real signed-in session.
+    if (!loaded || !isSignedIn || !user.email || !BASE_URL) return;
     if (syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(() => {
       setSyncStatus("syncing");
@@ -283,6 +285,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     user.skillProgress,
     user.referralCode,
     getToken,
+    isSignedIn,
   ]);
 
   // Register the invite code independently of email backup. Referrals should
@@ -338,11 +341,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (!email || !email.includes("@")) {
         return { ok: false, message: "Enter a valid email address." };
       }
+      if (!isSignedIn) {
+        return {
+          ok: false,
+          message: clerkEnabled
+            ? "Sign in first. Your guest progress stays on this device until you choose to merge it."
+            : "Accounts aren't available in this build. Your progress is saved on this device.",
+        };
+      }
       if (!BASE_URL) {
         return { ok: false, message: "Sync isn't available in this environment." };
       }
       try {
         const token = await getToken();
+        if (!token) return { ok: false, message: "Sign in to link your progress securely." };
         const res = await fetch(`${BASE_URL}/api/progress/me`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -361,48 +373,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) throw new Error("lookup failed");
         const remote = (await res.json()) as RemoteProgress;
 
-        const localScore = user.level * 100000 + user.xp;
-        const remoteScore = remote.level * 100000 + remote.xp;
-        const useRemote = remoteScore > localScore;
-
-        const mergedSkillProgress: Record<string, number> = { ...user.skillProgress };
-        for (const [k, v] of Object.entries(remote.skillProgress ?? {})) {
-          mergedSkillProgress[k] = Math.max(mergedSkillProgress[k] ?? 0, v);
-        }
-        const mergedSubjects = Array.from(new Set([...user.subjects, ...(remote.subjects ?? [])]));
-
-        const next: UserState = useRemote
-          ? {
-              ...user,
-              email,
-              userName: remote.name,
-              xp: remote.xp,
-              level: remote.level,
-              streak: Math.max(user.streak, remote.streak),
-              streakFreezes: Math.max(user.streakFreezes, remote.streakFreezes ?? 1),
-              totalQuizzes: Math.max(user.totalQuizzes, remote.totalQuizzes),
-              totalFeynmanSessions: Math.max(user.totalFeynmanSessions, remote.totalFeynmanSessions ?? 0),
-              dailyGoalMinutes: remote.dailyGoalMinutes ?? user.dailyGoalMinutes,
-              subjects: mergedSubjects,
-              skillProgress: mergedSkillProgress,
-              referralCode: remote.referralCode || user.referralCode,
-              referralsCompleted: Math.max(user.referralsCompleted, remote.referralCount ?? 0),
-              referralRewardGranted: user.referralRewardGranted || remote.referralRewardGranted === true,
-            }
-          : {
-              ...user,
-              email,
-              streak: Math.max(user.streak, remote.streak),
-              streakFreezes: Math.max(user.streakFreezes, remote.streakFreezes ?? 1),
-              totalQuizzes: Math.max(user.totalQuizzes, remote.totalQuizzes),
-              totalFeynmanSessions: Math.max(user.totalFeynmanSessions, remote.totalFeynmanSessions ?? 0),
-              subjects: mergedSubjects,
-              skillProgress: mergedSkillProgress,
-              referralCode: user.referralCode,
-              referralsCompleted: Math.max(user.referralsCompleted, remote.referralCount ?? 0),
-              referralRewardGranted: user.referralRewardGranted || remote.referralRewardGranted === true,
-            };
-
+        const { next, usedRemote: useRemote } = mergeProgress(user, remote, email);
         persist(next);
         return {
           ok: true,
@@ -414,13 +385,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { ok: false, message: "Couldn't reach the server. Check your connection and try again." };
       }
     },
-    [getToken, user, persist]
+    [getToken, user, persist, isSignedIn, clerkEnabled]
   );
 
   const redeemReferral = useCallback(
     async (rawCode: string) => {
       const code = rawCode.trim().toUpperCase();
-      if (!code || !BASE_URL) return;
+      if (!code || !BASE_URL || !isSignedIn) return;
       try {
         const token = await getToken();
         const response = await fetch(`${BASE_URL}/api/referrals/redeem`, {
@@ -449,7 +420,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Referral redemption is best effort; onboarding should never be blocked by it.
       }
     },
-    [getToken]
+    [getToken, isSignedIn]
   );
 
   const unlinkAccount = useCallback(() => {

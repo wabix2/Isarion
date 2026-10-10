@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { useAuth } from "@clerk/expo";
+import { useAppAuth } from "@/context/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -85,7 +85,7 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, addXP, incrementFeynman, advanceSkill } = useUser();
-  const { getToken } = useAuth();
+  const { getToken } = useAppAuth();
   const params = useLocalSearchParams<{ topic?: string; skillId?: string; subject?: string; pathMode?: string }>();
   const [mode, setMode] = useState<Mode>("feynman");
   const [topic, setTopic] = useState<string | null>(

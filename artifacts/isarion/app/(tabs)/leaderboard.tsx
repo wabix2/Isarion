@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/expo";
+import { useAppAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useUser } from "@/context/UserContext";
 import { shadows } from "@/constants/theme";
@@ -80,7 +80,7 @@ export default function LeaderboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useUser();
-  const { getToken } = useAuth();
+  const { getToken } = useAppAuth();
   const [view, setView] = useState<"global" | "league">("league");
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);

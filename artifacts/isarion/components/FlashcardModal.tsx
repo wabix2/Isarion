@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { useAuth } from "@clerk/expo";
+import { useAppAuth } from "@/context/AuthContext";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -103,7 +103,7 @@ interface Props {
 export default function FlashcardModal({ visible, subject, skillId, onClose, onComplete }: Props) {
   const colors = useColors();
   const { addXP } = useUser();
-  const { getToken } = useAuth();
+  const { getToken } = useAppAuth();
 
   const [cards, setCards] = useState(() => getCards(subject));
   const [current, setCurrent] = useState(0);
